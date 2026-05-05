@@ -250,7 +250,10 @@
   <div id="modeWired" style="display:none">
     <div class="wiring-info-bar">
       <span class="wire-hint" id="wireHint">🔌 Click a FG output → click a CRO input to connect. Click any connected terminal (or right-click) to unplug.</span>
-      <button class="btn-clear-wires" onclick="clearAllWires()">✕ Clear All Wires</button>
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <button class="btn-eraser" id="eraserBtn" onclick="toggleEraser()" title="Toggle Eraser Mode">🧹 Eraser</button>
+        <button class="btn-clear-wires" onclick="clearAllWires()">✕ Clear All Wires</button>
+      </div>
     </div>
 
     <div class="wired-grid">
@@ -386,11 +389,11 @@
           </div>
           <div class="knob-row">
             <div class="slider-head"><span class="panel-label">CH1 Y POS</span><span class="slider-val" id="w-lbl-ypos1" style="color:var(--cyan)">0</span></div>
-            <input type="range" id="w-sid-ypos1" min="-4" max="4" step="0.1" value="1.5" oninput="updateWired()" style="accent-color:var(--cyan)">
+            <input type="range" id="w-sid-ypos1" min="-4" max="4" step="0.1" value="0" oninput="updateWired()" style="accent-color:var(--cyan)">
           </div>
           <div class="knob-row">
             <div class="slider-head"><span class="panel-label">CH2 Y POS</span><span class="slider-val" id="w-lbl-ypos2" style="color:var(--amber)">0</span></div>
-            <input type="range" id="w-sid-ypos2" min="-4" max="4" step="0.1" value="-1.5" oninput="updateWired()" style="accent-color:var(--amber)">
+            <input type="range" id="w-sid-ypos2" min="-4" max="4" step="0.1" value="0" oninput="updateWired()" style="accent-color:var(--amber)">
           </div>
           <div class="knob-row">
             <div class="slider-head"><span class="panel-label">X POSITION</span><span class="slider-val" id="w-lbl-xpos" style="color:var(--rose)">0</span></div>

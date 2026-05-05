@@ -4,11 +4,120 @@
   <link rel="icon" href="favicon.png" type="image/png">
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Diode Lab — LogicFlow</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>  <link rel="stylesheet" href="css/global.css">
-
+  <title>PN Junction Diode Lab — LogicFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/exp3_diode.css">
+  <style>
+    /* ── Extended styles for the new circuit layout ── */
+    :root {
+      --rose:#F43F5E;
+    }
+    .mode-toggle{display:flex;gap:.4rem;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.08);border-radius:10px;padding:.3rem;margin-bottom:1.5rem}
+    .mode-btn{flex:1;padding:.55rem;border-radius:7px;border:none;background:none;color:var(--muted);font-family:var(--font-mono);font-size:.78rem;cursor:pointer;transition:all .2s;font-weight:700}
+    .mode-btn.active{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(26,86,219,.35)}
+
+    /* CIRCUIT SVG PANEL */
+    .circuit-panel{background:#0f172a;border-radius:16px;border:2px solid #1e293b;overflow:hidden;position:relative}
+    .circuit-panel svg{width:100%;display:block}
+    .circuit-label{position:absolute;top:12px;left:16px;font-family:var(--font-mono);font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+
+    /* METER CARDS — skeuomorphic look */
+    .meters-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem}
+    .meter-instrument{background:linear-gradient(145deg,#1e293b,#0f172a);border:2px solid #334155;border-radius:12px;padding:1rem;position:relative;overflow:hidden}
+    .meter-instrument::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)}
+    .meter-type{font-family:var(--font-mono);font-size:.55rem;color:#475569;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.4rem}
+    .meter-reading{font-family:'JetBrains Mono',monospace;font-size:1.35rem;font-weight:700;letter-spacing:.05em}
+    .meter-unit{font-size:.65rem;color:#64748b;margin-left:.25rem}
+    .meter-scale{height:4px;background:#1e293b;border-radius:2px;margin-top:.5rem;overflow:hidden}
+    .meter-fill{height:100%;border-radius:2px;transition:width .3s}
+    .m-ammeter .meter-reading{color:#10B981}
+    .m-ammeter .meter-fill{background:linear-gradient(90deg,#059669,#34d399)}
+    .m-voltmeter .meter-reading{color:#06b6d4}
+    .m-voltmeter .meter-fill{background:linear-gradient(90deg,#0891b2,#22d3ee)}
+    .m-vs .meter-reading{color:#F43F5E}
+    .m-vs .meter-fill{background:linear-gradient(90deg,#e11d48,#fb7185)}
+    .m-vt .meter-reading{color:#F59E0B}
+    .m-vt .meter-fill{background:linear-gradient(90deg,#d97706,#fbbf24)}
+
+    /* STATUS CARD */
+    #status-card{border-radius:10px;border:1px solid;padding:.8rem 1rem;margin-top:1rem;transition:all .3s;font-family:var(--font-mono);font-size:.75rem;display:flex;align-items:center;gap:.6rem}
+    #diode-status{font-weight:700;font-size:.8rem}
+
+    /* CHARTS */
+    .chart-pair{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .chart-box-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem}
+    .chart-head-mini{font-family:var(--font-mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.6rem}
+    .chart-h{height:220px;position:relative}
+
+    /* SANDBOX */
+    .sandbox-wrap{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden}
+    .sandbox-header{background:#1e293b;padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #334155}
+    .sandbox-title{font-family:var(--font-mono);font-size:.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+    .sandbox-svg-wrap{padding:1rem;background:#0f172a}
+    #sandbox-svg{width:100%;height:340px;display:block;overflow:visible}
+
+    /* Circuit Builder Styles */
+    .circuit-builder{display:flex;flex-direction:column;gap:1.5rem}
+    .component-palette{background:rgba(30,41,59,0.5);border:1px solid rgba(51,65,85,0.5);border-radius:12px;padding:1rem}
+    .palette-header h3{font-family:var(--font-mono);font-size:.9rem;color:#f1f5f9;margin-bottom:0.5rem}
+    .components-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:1rem;margin-top:1rem}
+    .component-item{display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.75rem;background:rgba(15,23,42,0.5);border:1px solid rgba(51,65,85,0.3);border-radius:8px;cursor:grab;transition:all 0.2s}
+    .component-item:hover{background:rgba(26,86,219,0.1);border-color:rgba(26,86,219,0.3);transform:translateY(-2px)}
+    .component-item:active{cursor:grabbing;transform:scale(0.95)}
+    .component-item span{font-family:var(--font-mono);font-size:.7rem;color:#94a3b8;text-align:center}
+    
+    .circuit-canvas{background:rgba(30,41,59,0.5);border:1px solid rgba(51,65,85,0.5);border-radius:12px;padding:1rem}
+    .canvas-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+    .canvas-header h3{font-family:var(--font-mono);font-size:.9rem;color:#f1f5f9}
+    .canvas-controls{display:flex;gap:0.5rem}
+    
+    .circuit-info{background:rgba(30,41,59,0.5);border:1px solid rgba(51,65,85,0.5);border-radius:12px;padding:1rem}
+    .circuit-info h3{font-family:var(--font-mono);font-size:.9rem;color:#f1f5f9;margin-bottom:0.75rem}
+    
+    /* Drag and drop visual feedback */
+    .dragging{opacity:0.5;cursor:grabbing}
+    .drop-zone{border:2px dashed rgba(26,86,219,0.5);background:rgba(26,86,219,0.05)}
+    .component-on-canvas{cursor:move}
+    .component-on-canvas:hover{filter:brightness(1.2)}
+    
+    /* Connection points */
+    .connection-point{fill:#1A56DB;stroke:#fff;stroke-width:2;cursor:crosshair;opacity:0.8}
+    .connection-point:hover{fill:#3B82F6;opacity:1;r:6}
+    .wire-connection{stroke:#334155;stroke-width:3;fill:none}
+
+    .sandbox-info-wrap{padding:1rem}
+    .info-line{padding:.75rem 1rem;border-radius:8px;font-family:var(--font-mono);font-size:.75rem;line-height:1.5;font-weight:600;border:1px solid}
+    .info-blocked{background:rgba(244,63,94,.1);border-color:rgba(244,63,94,.3);color:#fb7185}
+    .info-ok{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#34d399}
+    .info-multi{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:#fbbf24}
+    .info-line strong{font-weight:800}
+
+    /* PARAM BADGES  */
+    .param-badges{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+    .param-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:.3rem .7rem;font-family:var(--font-mono);font-size:.68rem;color:#94a3b8;display:flex;align-items:center;gap:.4rem}
+    .param-badge .pval{color:#e2e8f0;font-weight:700}
+
+    /* current dot on circuit */
+    .current-dot{transition:opacity .1s;fill:#34d399}
+
+    /* Observation panel */
+    .obs-mini{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.9rem;margin-top:.75rem;font-family:var(--font-mono);font-size:.72rem;color:#94a3b8;line-height:1.6}
+    .obs-mini strong{color:#e2e8f0}
+
+    /* full-width single column in lab-grid override */
+    .lab-grid-3{display:grid;grid-template-columns:300px 1fr;gap:1.5rem;padding-bottom:3rem}
+    .right-col{display:flex;flex-direction:column;gap:1rem}
+
+    /* Equation box */
+    .eq-dark{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.9rem 1.1rem;font-family:var(--font-mono);font-size:.9rem;text-align:center;color:#e2e8f0;margin-top:.5rem}
+    .eq-dark .ehi{color:#1A56DB}
+    .eq-dark .egreen{color:#10B981}
+    .eq-dark .eamb{color:#F59E0B}
+
+    @media(max-width:900px){.lab-grid-3{grid-template-columns:1fr}.chart-pair{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
 
@@ -20,9 +129,7 @@
   </div>
 
   <nav>
-    <a href="index.html" class="nav-logo">
-      LogicFlow
-    </a>
+    <a href="index.html" class="nav-logo">LogicFlow</a>
     <ul class="nav-links">
       <li><a href="curriculum.html">Curriculum</a></li>
       <li id="navTasksItem" hidden><a href="student-tasks.html">My tasks</a></li>
@@ -34,7 +141,7 @@
           <div class="dropdown-menu">
             <a href="exp1_components.html">1. Component Familiarization</a>
             <a href="exp2_equipments.html">2. Measurement Equipment</a>
-            <a href="exp3_diode.html">3. PN Junction Diode</a>
+            <a href="exp3_diode.html" class="active">3. PN Junction Diode</a>
             <a href="exp4_zener.html">4. Zener Diode</a>
             <a href="exp5_rectifier.html">5. Rectifiers</a>
             <a href="exp6_flipflops.html">6. Flip-Flops</a>
@@ -49,137 +156,479 @@
     </div>
   </nav>
 
-<div class="page">
-  <div class="page-header">
-    <div>
-      <div class="breadcrumb">
-        <span class="badge">Digital Electronics</span>
-        <span>›</span><span>Experiment 01</span>
-      </div>
-      <h1>PN Junction Diode</h1>
-      <p>Adjust voltage and temperature to plot the V-I characteristic in real time. Observe the Shockley equation at work.</p>
-    </div>
-    <div class="header-btns">
-      <button class="btn btn-export" onclick="printReport()">📄 Export Lab Report</button>
-      <button class="btn btn-reset" onclick="resetLab()">↺ Reset</button>
-    </div>
-  </div>
-
-  <div class="lab-grid">
-    <div style="display:flex;flex-direction:column;gap:1rem">
-      <div class="panel">
-        <div class="panel-label">Bias Mode</div>
-        <div class="bias-wrap">
-          <button class="bias-btn active" id="fwdBtn" onclick="setBias('forward')">⚡ Forward</button>
-          <button class="bias-btn" id="revBtn" onclick="setBias('reverse')">⬅ Reverse</button>
+  <!-- PAGE CONTENT -->
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">
+          <span class="badge">Experiment 03</span>
+          <span>›</span><span>Semiconductor Devices</span>
         </div>
-        <p id="biasDesc" style="font-size:.75rem;color:var(--muted);margin-top:.6rem">P-side positive → current flows above 0.7V</p>
+        <h1>PN Junction Diode</h1>
+        <p>Explore forward & reverse bias with a real AC generator circuit. Watch the ammeter and voltmeter respond live. Switch to Wired mode to build multi-diode series experiments.</p>
       </div>
-
-      <div class="panel">
-        <div class="slider-head"><span class="slider-label">Applied Voltage</span><span class="slider-val" id="vLabel">+0.00 V</span></div>
-        <div class="slider-wrap">
-          <input type="range" id="vSlider" min="-0.5" max="1.2" step="0.01" value="0" oninput="onVChange(this.value)">
-          <div class="slider-range"><span id="vMin">-0.5V</span><span id="vMax">+1.2V</span></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="slider-head"><span class="slider-label">Temperature</span><span class="slider-val" id="tLabel">25 °C</span></div>
-        <input type="range" id="tSlider" min="0" max="100" step="1" value="25" oninput="onTChange(this.value)" style="accent-color:var(--amber)">
-        <div class="slider-range"><span>0°C</span><span>100°C</span></div>
-        <p style="font-size:.7rem;color:var(--muted);margin-top:.5rem">↑ Temp → ↑ Vt → curve shifts left</p>
-      </div>
-
-      <div class="panel">
-        <div class="panel-label">Diode Parameters</div>
-        <div class="param-row"><span class="param-key">Material</span><span class="param-val">Silicon (Si)</span></div>
-        <div class="param-row"><span class="param-key">Is (sat.)</span><span class="param-val">1×10⁻¹² A</span></div>
-        <div class="param-row"><span class="param-key">n (ideality)</span><span class="param-val">1.0</span></div>
-        <div class="param-row"><span class="param-key">Vf (typ.)</span><span class="param-val">0.7 V</span></div>
-        <div class="param-row"><span class="param-key">Vt at 25°C</span><span class="param-val" id="vtVal">25.85 mV</span></div>
-      </div>
-
-      <div class="obs-card" id="obsCard" style="border-color:rgba(100,116,139,.3);background:rgba(100,116,139,.05)">
-        <div class="obs-title" id="obsTitle" style="color:#94a3b8">📋 Cut-off Region</div>
-        <div id="obsPoints"></div>
+      <div class="header-btns">
+        <button class="btn btn-export" onclick="printReport()">📄 Export Lab Report</button>
       </div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:1rem">
-      <div class="panel">
-        <div class="panel-label">Virtual Multimeter</div>
-        <div class="meter-grid">
-          <div class="meter-card">
-            <div class="meter-key">VOLTAGE (V)</div>
-            <div class="meter-val" id="mVolt" style="color:var(--blue)">0.000 V</div>
-          </div>
-          <div class="meter-card">
-            <div class="meter-key">CURRENT</div>
-            <div class="meter-val" id="mCurr" style="color:var(--green)">0.00 mA</div>
-          </div>
-          <div class="meter-card">
-            <div class="meter-key">POWER (mW)</div>
-            <div class="meter-val" id="mPower" style="color:var(--amber)">0.000 mW</div>
-          </div>
-          <div class="meter-card">
-            <div class="meter-key">STATUS</div>
-            <div class="meter-val" id="mStatus" style="color:#64748B;font-size:.75rem">CUT-OFF</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-panel">
-        <div class="chart-head">
-          <span class="chart-title">V-I Characteristic Curve</span>
-          <span class="qpoint" id="qpointLabel">Q-point: (0.00 V, 0.00 mA)</span>
-        </div>
-        <div class="chart-box"><canvas id="viChart"></canvas></div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-        <div class="panel">
-          <div class="panel-label">Shockley Equation</div>
-          <div class="eq-box">
-            <span style="color:var(--blue)">I</span> = <span style="color:var(--green)">Is</span> · (e<span style="color:var(--amber)">^(V/nVt)</span> − 1)
-          </div>
-          <div class="eq-params">
-            <div class="eq-param"><div class="eq-sym">Is</div><div class="eq-desc">Reverse saturation current (A)</div></div>
-            <div class="eq-param"><div class="eq-sym">V</div><div class="eq-desc">Applied voltage (V)</div></div>
-            <div class="eq-param"><div class="eq-sym">n</div><div class="eq-desc">Ideality factor 1–2</div></div>
-            <div class="eq-param"><div class="eq-sym">Vt</div><div class="eq-desc">Thermal voltage ≈26mV@25°C</div></div>
-          </div>
-        </div>
-        <div class="circuit-wrap">
-          <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;font-weight:600">Circuit Diagram</div>
-          <svg viewBox="0 0 260 140" width="100%">
-            <line x1="20" y1="30" x2="20" y2="110" stroke="#475569" stroke-width="2"/>
-            <line x1="10" y1="55" x2="30" y2="55" stroke="#1A56DB" stroke-width="2.5"/>
-            <line x1="13" y1="65" x2="27" y2="65" stroke="#1A56DB" stroke-width="1.5"/>
-            <text x="20" y="88" text-anchor="middle" font-size="8" fill="#475569" font-family="JetBrains Mono">Vs</text>
-            <line x1="20" y1="30" x2="90" y2="30" stroke="#10B981" stroke-width="1.8"/>
-            <line x1="20" y1="110" x2="200" y2="110" stroke="#475569" stroke-width="1.8"/>
-            <rect x="90" y="22" width="40" height="16" rx="3" fill="#fff" stroke="#475569" stroke-width="1.5"/>
-            <text x="110" y="33" text-anchor="middle" font-size="8" fill="#475569" font-family="JetBrains Mono">R</text>
-            <line x1="130" y1="30" x2="155" y2="30" stroke="#10B981" stroke-width="1.8"/>
-            <polygon points="155,20 155,40 178,30" fill="#1A56DB" fill-opacity=".8"/>
-            <line x1="178" y1="20" x2="178" y2="40" stroke="#1A56DB" stroke-width="2.5"/>
-            <text x="166" y="14" text-anchor="middle" font-size="8" fill="#1A56DB" font-family="JetBrains Mono">D1</text>
-            <line x1="178" y1="30" x2="200" y2="30" stroke="#10B981" stroke-width="1.8"/>
-            <line x1="200" y1="30" x2="200" y2="110" stroke="#10B981" stroke-width="1.8"/>
-            <text x="215" y="70" font-size="8" fill="#F59E0B" font-family="JetBrains Mono">Vout</text>
-            <line x1="200" y1="55" x2="235" y2="55" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 2"/>
-            <line x1="200" y1="85" x2="235" y2="85" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 2"/>
-            <text x="150" y="48" font-size="7" fill="#10B981" font-family="JetBrains Mono">→ I</text>
-          </svg>
-        </div>
-      </div>
+    <!-- MODE TOGGLE -->
+    <div class="mode-toggle" style="max-width:320px">
+      <button class="mode-btn active" id="btn-wireless" onclick="switchMode('wireless')">📡 Wireless Sim</button>
+      <button class="mode-btn" id="btn-wired" onclick="switchMode('wired')">🔌 Wired Sandbox</button>
     </div>
-  </div>
-</div>
 
-<script defer src="js/nav-shared.js"></script>
-<script defer src="js/exp3_diode.js"></script>
+    <!-- ═══════════════ WIRELESS PANEL ═══════════════ -->
+    <div id="panel-wireless">
+      <div class="lab-grid-3">
 
+        <!-- LEFT: Controls -->
+        <div style="display:flex;flex-direction:column;gap:1rem">
+
+          <!-- Bias selector -->
+          <div class="panel">
+            <div class="panel-label">Bias Mode</div>
+            <div class="bias-wrap">
+              <button class="bias-btn active" id="btn-fwd" onclick="setBias('forward')">⚡ Forward</button>
+              <button class="bias-btn" id="btn-rev" onclick="setBias('reverse')">⬅ Reverse</button>
+            </div>
+          </div>
+
+          <!-- Sliders -->
+          <div class="panel">
+            <div class="panel-label">AC Generator</div>
+
+            <div class="slider-wrap">
+              <div class="slider-head">
+                <span class="slider-label">Peak Amplitude</span>
+                <span class="slider-val" id="lbl-amp" style="color:var(--rose)">5.0 Vp</span>
+              </div>
+              <input type="range" id="sid-amp" min="0.1" max="15" step="0.1" value="5" style="accent-color:var(--rose)">
+              <div class="slider-range"><span>0.1V</span><span>15V</span></div>
+            </div>
+
+            <div class="slider-wrap">
+              <div class="slider-head">
+                <span class="slider-label">Frequency</span>
+                <span class="slider-val" id="lbl-freq" style="color:var(--cyan)">50 Hz</span>
+              </div>
+              <input type="range" id="sid-freq" min="10" max="500" step="10" value="50" style="accent-color:var(--cyan)">
+              <div class="slider-range"><span>10 Hz</span><span>500 Hz</span></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-label">Circuit Parameters</div>
+
+            <div class="slider-wrap">
+              <div class="slider-head">
+                <span class="slider-label">Series Resistor (R)</span>
+                <span class="slider-val" id="lbl-res" style="color:var(--green)">100Ω</span>
+              </div>
+              <input type="range" id="sid-res" min="10" max="10000" step="10" value="100" style="accent-color:var(--green)">
+              <div class="slider-range"><span>10Ω</span><span>10kΩ</span></div>
+            </div>
+
+            <div class="slider-wrap">
+              <div class="slider-head">
+                <span class="slider-label">Temperature</span>
+                <span class="slider-val" id="lbl-temp" style="color:var(--amber)">25 °C</span>
+              </div>
+              <input type="range" id="sid-temp" min="0" max="100" step="1" value="25" style="accent-color:var(--amber)">
+              <div class="slider-range"><span>0°C</span><span>100°C</span></div>
+            </div>
+          </div>
+
+          <!-- Diode parameters -->
+          <div class="panel">
+            <div class="panel-label">Silicon Diode (1N4007)</div>
+            <div class="param-row"><span class="param-key">Is (sat. current)</span><span class="param-val">1×10⁻¹² A</span></div>
+            <div class="param-row"><span class="param-key">n (ideality factor)</span><span class="param-val">1.0</span></div>
+            <div class="param-row"><span class="param-key">Vf (typical)</span><span class="param-val">0.7 V</span></div>
+            <div class="param-row"><span class="param-key">Vt at 25°C</span><span class="param-val" id="meter-vt">25.85 mV</span></div>
+          </div>
+
+          <!-- Shockley -->
+          <div class="panel">
+            <div class="panel-label">Shockley Equation</div>
+            <div class="eq-box">
+              <span style="color:var(--blue)">I</span> = <span style="color:var(--green)">Is</span> · (e<span style="color:var(--amber)">^(V/nVt)</span> − 1)
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Circuit + charts -->
+        <div class="right-col">
+
+          <!-- LIVE CIRCUIT DIAGRAM -->
+          <div class="circuit-panel">
+            <div class="circuit-label">📡 Live Circuit — AC Generator · Series R · PN Diode · Meters</div>
+            <svg viewBox="0 0 540 230" xmlns="http://www.w3.org/2000/svg" style="height:230px">
+              <defs>
+                <radialGradient id="diodeGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#1A56DB" stop-opacity="0.6"/>
+                  <stop offset="100%" stop-color="#1A56DB" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="blur3"><feGaussianBlur stdDeviation="3"/></filter>
+                <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+                <marker id="arr-c" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L7,3 Z" fill="#34d399"/>
+                </marker>
+              </defs>
+
+              <!-- Background grid -->
+              <pattern id="bgrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M20,0 L0,0 0,20" fill="none" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>
+              </pattern>
+              <rect width="540" height="230" fill="url(#bgrid)"/>
+
+              <!-- ─── WIRES ─── -->
+              <!-- Top wire: gen → R → D → ammeter -->
+              <line x1="80"  y1="85" x2="155" y2="85"  stroke="#334155" stroke-width="2.5"/>
+              <line x1="205" y1="85" x2="265" y2="85"  stroke="#334155" stroke-width="2.5"/>
+              <line x1="320" y1="85" x2="390" y2="85"  stroke="#334155" stroke-width="2.5"/>
+              <line x1="440" y1="85" x2="480" y2="85"  stroke="#334155" stroke-width="2.5"/>
+              <!-- Vertical right -->
+              <line x1="480" y1="85"  x2="480" y2="170" stroke="#334155" stroke-width="2.5"/>
+              <!-- Bottom return wire -->
+              <line x1="80"  y1="170" x2="480" y2="170" stroke="#334155" stroke-width="2.5"/>
+              <!-- Voltmeter tap wires (dashed) -->
+              <line x1="265" y1="85"  x2="265" y2="140" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,3"/>
+              <line x1="320" y1="85"  x2="320" y2="140" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+              <!-- ─── AC GENERATOR ─── -->
+              <g id="wireless-generator" style="cursor:pointer" onclick="toggleGeneratorPower()">
+                <ellipse cx="50" cy="127" rx="32" ry="32" fill="rgba(26,86,219,0.1)" stroke="#1A56DB" stroke-width="2"/>
+                <!-- AC symbol inside generator -->
+                <polyline id="gen-wave-phase" points="30,127 36,118 42,136 48,118 54,136 60,127 66,127" fill="none" stroke="#1A56DB" stroke-width="1.8" stroke-linecap="round"/>
+                <text x="50" y="108" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" fill="#1A56DB" font-weight="700">AC</text>
+                <text x="50" y="155" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="#475569">GEN</text>
+                <!-- Generator terminals -->
+                <line x1="50" y1="95"  x2="50"  y2="85"  stroke="#334155" stroke-width="2.5"/>
+                <line x1="50" y1="159" x2="50"  y2="170" stroke="#334155" stroke-width="2.5"/>
+                <circle cx="50" cy="85"  r="3" fill="#F43F5E"/>
+                <circle cx="50" cy="170" r="3" fill="#475569"/>
+                <text x="57" y="83"  font-family="JetBrains Mono" font-size="8" fill="#F43F5E" font-weight="700">+</text>
+                <text x="57" y="173" font-family="JetBrains Mono" font-size="8" fill="#475569" font-weight="700">−</text>
+              </g>
+
+              <!-- Source voltage label -->
+              <rect x="26" y="62" width="48" height="14" rx="4" fill="rgba(244,63,94,0.12)" stroke="rgba(244,63,94,0.3)" stroke-width="1"/>
+              <text x="50" y="72" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#F43F5E" font-weight="700" id="meter-vs">5.0 V</text>
+
+              <!-- ─── SERIES RESISTOR ─── -->
+              <g id="wireless-resistor" style="cursor:pointer" onclick="changeResistance()">
+                <rect x="155" y="76" width="50" height="18" rx="3" fill="#0f172a" stroke="#F59E0B" stroke-width="2"/>
+                <!-- Resistor zigzag fill -->
+                <polyline points="158,85 163,78 168,92 173,78 178,92 183,78 188,92 193,85 200,85" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+                <text x="180" y="70" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#F59E0B" font-weight="700">R</text>
+
+                <!-- R label value -->
+                <text x="180" y="106" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#64748b" id="circuit-r-lbl">100Ω</text>
+                <!-- Click hint -->
+                <text x="180" y="120" text-anchor="middle" font-family="JetBrains Mono" font-size="5" fill="#94a3b8" opacity="0.7">Click to change</text>
+              </g>
+
+              <!-- ─── PN DIODE ─── -->
+              <g id="wireless-diode" style="cursor:pointer" onclick="toggleDiodeBias()">
+                <!-- Glow effect -->
+                <ellipse cx="292" cy="85" rx="36" ry="22" fill="url(#diodeGlow)" id="diode-glow-bg" style="filter:url(#blur3)"/>
+                <!-- Triangle (anode side) -->
+                <polygon id="svg-diode-body" points="265,71 265,99 295,85" fill="rgba(26,86,219,0.2)" stroke="#1A56DB" stroke-width="2.5" stroke-linejoin="round"/>
+                <!-- Cathode bar -->
+                <line x1="295" y1="71" x2="295" y2="99" stroke="#1A56DB" stroke-width="3.5"/>
+                <!-- Leads -->
+                <line x1="265" y1="85" x2="265" y2="85" stroke="#1A56DB" stroke-width="2"/>
+                <line x1="295" y1="85" x2="320" y2="85" stroke="#1A56DB" stroke-width="2"/>
+                <!-- A / K labels -->
+                <text x="258" y="68" font-family="JetBrains Mono" font-size="8" fill="#06b6d4" font-weight="700">A</text>
+                <text x="299" y="68" font-family="JetBrains Mono" font-size="8" fill="#F43F5E" font-weight="700">K</text>
+                <!-- Diode label -->
+                <text x="292" y="112" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#1A56DB" font-weight="700">D1 (1N4007)</text>
+                <!-- Click hint -->
+                <text x="292" y="125" text-anchor="middle" font-family="JetBrains Mono" font-size="5" fill="#94a3b8" opacity="0.7">Click to flip bias</text>
+              </g>
+
+              <!-- ─── VOLTMETER ─── -->
+              <rect x="270" y="140" width="55" height="30" rx="6" fill="rgba(15,23,42,0.9)" stroke="#F59E0B" stroke-width="2"/>
+              <text x="297" y="153" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#F59E0B" font-weight="700">V</text>
+              <text x="297" y="164" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#F59E0B" font-weight="700" id="meter-voltmeter">0.000 V</text>
+
+              <!-- ─── AMMETER ─── -->
+              <circle cx="415" cy="85" r="22" fill="rgba(16,185,129,0.1)" stroke="#10B981" stroke-width="2"/>
+              <!-- Needle indicator -->
+              <circle id="ammeter-glow" cx="415" cy="85" r="0" fill="#10B981" opacity="0.4" style="filter:url(#blur2)"/>
+              <text x="415" y="82" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#10B981" font-weight="700">A</text>
+              <text x="415" y="93" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#10B981" font-weight="700" id="meter-ammeter">0 mA</text>
+              <text x="415" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" fill="#475569">Ammeter</text>
+
+              <!-- Current dots (animated via JS) -->
+              <circle class="current-dot" cx="100" cy="85" r="4" opacity="0"/>
+              <circle class="current-dot" cx="200" cy="85" r="4" opacity="0" style="--delay:0.33s"/>
+              <circle class="current-dot" cx="300" cy="85" r="4" opacity="0" style="--delay:0.66s"/>
+
+            </svg>
+          </div>
+
+          <!-- STATUS CARD -->
+          <div id="status-card" style="background:rgba(100,116,139,0.08);border-color:rgba(100,116,139,0.2)">
+            <span id="diode-status" style="color:#64748b">⬜ CUT-OFF</span>
+            <span style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted)">— Increase amplitude or check bias mode</span>
+          </div>
+
+          <!-- INSTRUMENTS (styled meters) -->
+          <div class="meters-row">
+            <div class="meter-instrument m-ammeter">
+              <div class="meter-type">Ammeter — Series Circuit</div>
+              <div style="display:flex;align-items:baseline;gap:.3rem">
+                <span class="meter-reading" id="meter-ammeter-card">0.00</span>
+                <span class="meter-unit">mA</span>
+              </div>
+              <div class="meter-scale"><div class="meter-fill" id="ammeter-fill" style="width:0%"></div></div>
+            </div>
+            <div class="meter-instrument m-voltmeter">
+              <div class="meter-type">Voltmeter — Across Diode</div>
+              <div style="display:flex;align-items:baseline;gap:.3rem">
+                <span class="meter-reading" id="voltmeter-card">0.000</span>
+                <span class="meter-unit">V</span>
+              </div>
+              <div class="meter-scale"><div class="meter-fill" id="voltmeter-fill" style="width:0%"></div></div>
+            </div>
+          </div>
+
+          <!-- CHARTS -->
+          <div class="chart-pair">
+            <div class="chart-box-wrap">
+              <div class="chart-head-mini">📈 V–I Characteristic Curve</div>
+              <div class="chart-h"><canvas id="viCanvas"></canvas></div>
+            </div>
+            <div class="chart-box-wrap">
+              <div class="chart-head-mini">〜 Waveform — Vin / Vd / Id vs. Time</div>
+              <div class="chart-h"><canvas id="waveCanvas"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Observation card -->
+          <div class="panel">
+            <div class="panel-label">Key Observations</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;font-family:var(--font-mono);font-size:.72rem">
+              <div style="background:rgba(26,86,219,.08);border:1px solid rgba(26,86,219,.2);border-radius:8px;padding:.7rem">
+                <div style="color:#1A56DB;font-weight:700;margin-bottom:.3rem">KNEE VOLTAGE</div>
+                <div style="color:#94a3b8">≈ 0.7 V for Silicon</div>
+                <div style="color:#64748b;font-size:.65rem;margin-top:.3rem">Below this: no significant current</div>
+              </div>
+              <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:.7rem">
+                <div style="color:#10B981;font-weight:700;margin-bottom:.3rem">SHOCKLEY EQ.</div>
+                <div style="color:#94a3b8">I = Is·(e^(V/nVt) − 1)</div>
+                <div style="color:#64748b;font-size:.65rem;margin-top:.3rem">Exponential conduction</div>
+              </div>
+              <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:.7rem">
+                <div style="color:#F59E0B;font-weight:700;margin-bottom:.3rem">TEMP EFFECT</div>
+                <div style="color:#94a3b8">↑ T → ↑ Vt → curve shifts</div>
+                <div style="color:#64748b;font-size:.65rem;margin-top:.3rem">Higher temp = easier conduction</div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /right-col -->
+      </div><!-- /lab-grid-3 -->
+    </div><!-- /panel-wireless -->
+
+    <!-- ═══════════════ WIRED SANDBOX PANEL ═══════════════ -->
+    <div id="panel-wired" style="display:none">
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:1.5rem;padding-bottom:3rem">
+
+        <!-- Controls left -->
+        <div style="display:flex;flex-direction:column;gap:1rem">
+          <div class="panel">
+            <div class="panel-label">🔌 Wired Sandbox Controls</div>
+            <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">
+              Add PN diodes in series. Flip polarity. Observe how stacking affects voltage drop and current. Understand why single diodes are standard.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:.5rem">
+              <button onclick="addDiode(false)" style="padding:.65rem;border-radius:8px;border:1px solid rgba(26,86,219,.3);background:rgba(26,86,219,.1);color:#60a5fa;font-family:var(--font-mono);font-size:.78rem;font-weight:700;cursor:pointer">
+                ＋ Add Diode (Forward →)
+              </button>
+              <button onclick="addDiode(true)" style="padding:.65rem;border-radius:8px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.1);color:#a78bfa;font-family:var(--font-mono);font-size:.78rem;font-weight:700;cursor:pointer">
+                ＋ Add Diode (Reverse ←)
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-label">Generator Settings</div>
+            <div class="slider-wrap">
+              <div class="slider-head">
+                <span class="slider-label">Peak Amplitude</span>
+                <span class="slider-val" style="color:var(--rose)" id="lbl-amp">5.0 Vp</span>
+              </div>
+              <input type="range" id="sid-amp" min="0.1" max="15" step="0.1" value="5" style="accent-color:var(--rose)" disabled>
+              <div class="slider-range"><span>0.1V</span><span>15V</span></div>
+            </div>
+            <p style="font-family:var(--font-mono);font-size:.65rem;color:#475569;margin-top:.4rem">↑ Adjust amplitude in Wireless panel</p>
+          </div>
+
+          <!-- Readings panel -->
+          <div class="panel">
+            <div class="panel-label">Wired Circuit Readings</div>
+            <div style="display:flex;flex-direction:column;gap:.75rem">
+              <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:.9rem">
+                <div style="font-family:var(--font-mono);font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem">AMMETER</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:#10B981" id="sb-ammeter-big">0.00 mA</div>
+              </div>
+              <div style="background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.2);border-radius:10px;padding:.9rem">
+                <div style="font-family:var(--font-mono);font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem">VOLTMETER (across all diodes)</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:#06b6d4" id="sb-voltmeter-big">0.000 V</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-label">💡 Learning Notes</div>
+            <div style="font-size:.78rem;color:var(--muted);line-height:1.65;display:flex;flex-direction:column;gap:.5rem">
+              <p>🔵 <strong>Forward diodes in series</strong> add voltage drops (~0.7V each). More diodes = more total Vf required.</p>
+              <p>🔴 <strong>One reverse diode</strong> in a series chain completely blocks current — the chain is broken.</p>
+              <p>⚡ <strong>Standard circuits</strong> use single diodes for predictable 0.7V forward drop and full control.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Circuit Builder -->
+        <div class="circuit-builder">
+          <!-- Component Palette -->
+          <div class="component-palette">
+            <div class="palette-header">
+              <h3>🔧 Component Library</h3>
+              <p style="font-size:.7rem;color:var(--muted)">Drag components to the canvas to build circuits</p>
+            </div>
+            
+            <!-- Wiring Instructions -->
+            <div class="wiring-guide">
+              <h4>⚡ How to Wire Components:</h4>
+              <ol style="font-size:.7rem;color:var(--muted);line-height:1.5;padding-left:1.2rem">
+                <li><strong>Drag</strong> components from this palette to the canvas</li>
+                <li><strong>Click</strong> a blue connection point (it turns green)</li>
+                <li><strong>Click</strong> another connection point to complete the wire</li>
+                <li><strong>Right-click</strong> a component to delete it</li>
+                <li><strong>Click "Run Sim"</strong> to analyze your circuit</li>
+              </ol>
+              <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap">
+                <span style="background:rgba(26,86,219,0.2);color:#1A56DB;padding:0.2rem 0.5rem;border-radius:4px;font-size:.6rem">🔵 Connection Point</span>
+                <span style="background:rgba(16,185,129,0.2);color:#10B981;padding:0.2rem 0.5rem;border-radius:4px;font-size:.6rem">🟢 Selected Point</span>
+                <span style="background:rgba(245,158,11,0.2);color:#F59E0B;padding:0.2rem 0.5rem;border-radius:4px;font-size:.6rem">🟡 Wire</span>
+              </div>
+            </div>
+            <div class="components-grid">
+              <div class="component-item" draggable="true" data-component="generator">
+                <svg width="50" height="50" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="20" fill="rgba(26,86,219,0.1)" stroke="#1A56DB" stroke-width="2"/>
+                  <text x="25" y="20" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#1A56DB" font-weight="700">AC</text>
+                  <text x="25" y="30" text-anchor="middle" font-family="JetBrains Mono" font-size="5" fill="#1A56DB">GEN</text>
+                </svg>
+                <span>Generator</span>
+              </div>
+              <div class="component-item" draggable="true" data-component="resistor">
+                <svg width="50" height="50" viewBox="0 0 50 50">
+                  <rect x="8" y="20" width="34" height="10" rx="2" fill="#0f172a" stroke="#F59E0B" stroke-width="2"/>
+                  <polyline points="10,25 15,18 20,32 25,18 30,32 35,18 40,25" fill="none" stroke="#F59E0B" stroke-width="1.5"/>
+                </svg>
+                <span>Resistor</span>
+              </div>
+              <div class="component-item" draggable="true" data-component="diode">
+                <svg width="50" height="50" viewBox="0 0 50 50">
+                  <polygon points="12,20 12,30 25,25" fill="rgba(26,86,219,0.25)" stroke="#1A56DB" stroke-width="2"/>
+                  <line x1="25" y1="20" x2="25" y2="30" stroke="#1A56DB" stroke-width="3"/>
+                  <line x1="5" y1="25" x2="12" y2="25" stroke="#1A56DB" stroke-width="2"/>
+                  <line x1="25" y1="25" x2="38" y2="25" stroke="#1A56DB" stroke-width="2"/>
+                </svg>
+                <span>Diode</span>
+              </div>
+              <div class="component-item" draggable="true" data-component="ammeter">
+                <svg width="50" height="50" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="18" fill="rgba(16,185,129,0.1)" stroke="#10B981" stroke-width="2"/>
+                  <text x="25" y="30" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#10B981" font-weight="700">A</text>
+                </svg>
+                <span>Ammeter</span>
+              </div>
+              <div class="component-item" draggable="true" data-component="voltmeter">
+                <svg width="50" height="50" viewBox="0 0 50 50">
+                  <rect x="8" y="12" width="34" height="26" rx="4" fill="rgba(245,158,11,0.1)" stroke="#F59E0B" stroke-width="2"/>
+                  <text x="25" y="30" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#F59E0B" font-weight="700">V</text>
+                </svg>
+                <span>Voltmeter</span>
+              </div>
+              <div class="component-item" draggable="true" data-component="ground">
+                <svg width="50" height="50" viewBox="0 0 50 50">
+                  <line x1="25" y1="15" x2="25" y2="25" stroke="#334155" stroke-width="3"/>
+                  <line x1="15" y1="30" x2="35" y2="30" stroke="#334155" stroke-width="2"/>
+                  <line x1="18" y1="35" x2="32" y2="35" stroke="#334155" stroke-width="2"/>
+                  <line x1="21" y1="40" x2="29" y2="40" stroke="#334155" stroke-width="2"/>
+                </svg>
+                <span>Ground</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Circuit Canvas -->
+          <div class="circuit-canvas">
+            <div class="canvas-header">
+              <h3>⚡ Circuit Canvas</h3>
+              <div class="canvas-controls">
+                <button onclick="clearCanvas()" style="padding:.5rem;border-radius:6px;border:1px solid rgba(244,63,94,.3);background:rgba(244,63,94,.1);color:#f87171;font-family:var(--font-mono);font-size:.7rem;font-weight:700;cursor:pointer">
+                  🗑️ Clear All
+                </button>
+                <button onclick="runSimulation()" style="padding:.5rem;border-radius:6px;border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.1);color:#34d399;font-family:var(--font-mono);font-size:.7rem;font-weight:700;cursor:pointer">
+                  ▶️ Run Sim
+                </button>
+                              </div>
+            </div>
+            <svg id="circuit-canvas" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:400px;background:#0f172a;border-radius:8px;">
+              <!-- Grid -->
+              <defs>
+                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                </pattern>
+              </defs>
+              <rect width="800" height="400" fill="url(#grid)"/>
+              
+              <!-- Components will be added here dynamically -->
+            </svg>
+          </div>
+
+          <!-- Circuit Info Panel -->
+          <div class="circuit-info">
+            <h3>📊 Circuit Analysis</h3>
+            <div id="circuit-readings">
+              <p style="color:var(--muted);font-size:.8rem">Build a circuit and click "Run Sim" to analyze</p>
+            </div>
+            
+            <!-- Example Templates -->
+            <div class="circuit-templates">
+              <h4>🎯 Try These Circuits:</h4>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem">
+                <button onclick="buildExampleCircuit('simple-diode')" style="padding:0.5rem;background:rgba(26,86,219,0.1);border:1px solid rgba(26,86,219,0.3);border-radius:6px;color:#60a5fa;font-family:var(--font-mono);font-size:.65rem;cursor:pointer">
+                  🔌 Simple Diode Circuit
+                </button>
+                <button onclick="buildExampleCircuit('rectifier')" style="padding:0.5rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:6px;color:#34d399;font-family:var(--font-mono);font-size:.65rem;cursor:pointer">
+                  ⚡ Half-Wave Rectifier
+                </button>
+                <button onclick="buildExampleCircuit('voltage-divider')" style="padding:0.5rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;color:#fbbf24;font-family:var(--font-mono);font-size:.65rem;cursor:pointer">
+                  📊 Voltage Divider
+                </button>
+                <button onclick="buildExampleCircuit('series-diodes')" style="padding:0.5rem;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:6px;color:#a78bfa;font-family:var(--font-mono);font-size:.65rem;cursor:pointer">
+                  🔗 Series Diodes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /panel-wired -->
+
+  </div><!-- /page -->
+
+  <script defer src="js/nav-shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script defer src="js/exp3_diode.js"></script>
 </body>
 </html>

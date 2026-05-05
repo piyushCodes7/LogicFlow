@@ -104,6 +104,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .wire-hint{font-family:var(--font-mono);font-size:.75rem;color:var(--blue);font-weight:600}
 .btn-clear-wires{padding:.35rem .85rem;border-radius:7px;border:1px solid rgba(244,63,94,.3);background:rgba(244,63,94,.08);color:var(--rose);font-family:var(--font-mono);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .2s}
 .btn-clear-wires:hover{background:rgba(244,63,94,.18)}
+.btn-eraser{padding:.35rem .85rem;border-radius:7px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:var(--amber);font-family:var(--font-mono);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-eraser:hover{background:rgba(245,158,11,.18)}
+.btn-eraser.active{background:rgba(245,158,11,.25);border-color:var(--amber);color:var(--amber);box-shadow:0 2px 8px rgba(245,158,11,.3);transform:scale(1.05)}
 
 .wired-grid{display:grid;grid-template-columns:280px 80px 1fr;gap:0;align-items:start}
 

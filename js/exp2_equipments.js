@@ -907,12 +907,229 @@ function setMode(mode) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  ERASER FUNCTIONALITY
+// ══════════════════════════════════════════════════════════════
+let isErasing = false;
+let eraserTimer = null;
+let eraserCursor = null;
+
+function initEraser() {
+  // Create eraser cursor element
+  eraserCursor = document.createElement('div');
+  eraserCursor.style.cssText = `
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #F43F5E;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(244, 63, 94, 0.3), rgba(244, 63, 94, 0.1));
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+  `;
+  document.body.appendChild(eraserCursor);
+
+  // Add mouse down listener for eraser activation
+  document.addEventListener('mousedown', handleEraserStart);
+  document.addEventListener('mouseup', handleEraserEnd);
+  document.addEventListener('mousemove', handleEraserMove);
+  document.addEventListener('click', handleEraserClick);
+  
+  // Prevent context menu during eraser mode
+  document.addEventListener('contextmenu', (e) => {
+    if (isErasing) {
+      e.preventDefault();
+    }
+  });
+  
+  // Add hover effects for erasable elements
+  addErasableHoverEffects();
+}
+
+function addErasableHoverEffects() {
+  // Add hover effect for wire lines
+  const style = document.createElement('style');
+  style.textContent = `
+    .wire-line {
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+    .wire-line.eraser-hover {
+      filter: brightness(1.5) drop-shadow(0 0 8px #F43F5E);
+      opacity: 0.8;
+    }
+    .terminal-btn.connected {
+      transition: all 0.2s ease;
+    }
+    .terminal-btn.connected.eraser-hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+      border-color: #F43F5E !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function handleEraserStart(e) {
+  // Only activate eraser on left click (button 0) and not on input elements
+  if (e.button !== 0 || e.target.closest('input, button, select, textarea')) return;
+  
+  // Start timer for long press (500ms)
+  eraserTimer = setTimeout(() => {
+    isErasing = true;
+    eraserCursor.style.display = 'block';
+    document.body.style.cursor = 'none';
+    document.body.style.userSelect = 'none';
+    
+    // Show eraser hint
+    const hint = document.getElementById('wireHint');
+    if (hint) {
+      hint.textContent = '🧹 Eraser active - drag over elements to delete them';
+      hint.style.color = '#F43F5E';
+    }
+    
+    // Immediately erase at current position
+    handleEraserMove(e);
+  }, 500);
+}
+
+function handleEraserEnd(e) {
+  // Clear timer if eraser wasn't activated
+  if (eraserTimer) {
+    clearTimeout(eraserTimer);
+    eraserTimer = null;
+  }
+  
+  if (isErasing) {
+    isErasing = false;
+    eraserCursor.style.display = 'none';
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    
+    // Restore hint
+    const hint = document.getElementById('wireHint');
+    if (hint && currentMode === 'wired') {
+      hint.textContent = '🔌 Click a FG output → click a CRO input to connect. Click any connected terminal (or right-click) to unplug.';
+      hint.style.color = '';
+    }
+  }
+}
+
+function handleEraserMove(e) {
+  if (!isErasing) return;
+  
+  // Update eraser cursor position
+  eraserCursor.style.left = e.clientX + 'px';
+  eraserCursor.style.top = e.clientY + 'px';
+  
+  // Clear previous hover effects
+  document.querySelectorAll('.eraser-hover').forEach(el => {
+    el.classList.remove('eraser-hover');
+  });
+  
+  // Check for elements to highlight at current position
+  const elements = document.elementsFromPoint(e.clientX, e.clientY);
+  
+  for (const element of elements) {
+    // Add hover effect to wire SVG paths
+    if (element.classList.contains('wire-line') || element.parentElement?.classList.contains('wire-line')) {
+      const wireElement = element.classList.contains('wire-line') ? element : element.parentElement;
+      wireElement.classList.add('eraser-hover');
+      
+      // Make eraser cursor more intense when hovering over erasable element
+      eraserCursor.style.transform = 'translate(-50%, -50%) scale(1.1)';
+      eraserCursor.style.borderColor = '#DC2626';
+      break;
+    }
+    
+    // Add hover effect to terminal connections
+    const terminal = element.closest('.terminal-btn.connected');
+    if (terminal) {
+      terminal.classList.add('eraser-hover');
+      
+      // Make eraser cursor more intense
+      eraserCursor.style.transform = 'translate(-50%, -50%) scale(1.1)';
+      eraserCursor.style.borderColor = '#DC2626';
+      break;
+    }
+  }
+  
+  // Reset eraser cursor if not hovering over erasable element
+  if (!document.elementsFromPoint(e.clientX, e.clientY).some(el => 
+    el.classList.contains('wire-line') || 
+    el.parentElement?.classList.contains('wire-line') || 
+    el.closest('.terminal-btn.connected')
+  )) {
+    eraserCursor.style.transform = 'translate(-50%, -50%) scale(1)';
+    eraserCursor.style.borderColor = '#F43F5E';
+  }
+}
+
+function handleEraserClick(e) {
+  if (!isErasing) return;
+  
+  // Check for elements to erase at current position
+  const elements = document.elementsFromPoint(e.clientX, e.clientY);
+  
+  for (const element of elements) {
+    // Erase wire SVG paths
+    if (element.classList.contains('wire-line') || element.parentElement?.classList.contains('wire-line')) {
+      const wireElement = element.classList.contains('wire-line') ? element : element.parentElement;
+      eraseWire(wireElement);
+      break;
+    }
+    
+    // Erase terminal connections
+    const terminal = element.closest('.terminal-btn.connected');
+    if (terminal) {
+      if (terminal.id === 'fg-out-1') disconnectFg(1);
+      else if (terminal.id === 'fg-out-2') disconnectFg(2);
+      else if (terminal.id === 'cro-in-1') disconnectCro(1);
+      else if (terminal.id === 'cro-in-2') disconnectCro(2);
+      break;
+    }
+  }
+}
+
+function eraseWire(wireElement) {
+  // Find which connection this wire represents
+  const strokeColor = wireElement.getAttribute('stroke');
+  const isCh1 = strokeColor === '#06b6d4'; // cyan color
+  const isCh2 = strokeColor === '#F59E0B';  // amber color
+  
+  if (isCh1) {
+    // Disconnect CH1
+    W.connections[1] = null;
+  } else if (isCh2) {
+    // Disconnect CH2
+    W.connections[2] = null;
+  }
+  
+  clearSelection();
+  updateConnectionVisuals();
+  
+  // Visual feedback
+  wireElement.style.opacity = '0';
+  wireElement.style.transition = 'opacity 0.2s';
+  setTimeout(() => {
+    if (wireElement.parentNode) {
+      wireElement.parentNode.removeChild(wireElement);
+    }
+  }, 200);
+}
+
+// ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   // Init both modes
   initSimple();
   initWired();
+  
+  // Initialize eraser functionality
+  initEraser();
 
   // Initialize power buttons to OFF state
   const sBtn = document.getElementById('s-power-btn');
